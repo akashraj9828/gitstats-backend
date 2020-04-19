@@ -83,7 +83,12 @@ app.use('/:username', (req, res) => {
         .catch(error => console.error(error));
 });
 
-const port = 3000;
+app.use("/",(req,res)=>{
+    res.json({msg:"This is api for GitStats",hint:{1:"try querying /{username}",2:"to get api request limit /rate_limit"}})
+})
+
+// 3000 for frontend on local machine
+const port = 4000;
 
 const server = app.listen(process.env.PORT || port, () => {
     signale.info(`-------STARTING SERVER`)
@@ -91,3 +96,4 @@ const server = app.listen(process.env.PORT || port, () => {
     var port = server.address().port;
     signale.success(`-------EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
 })
+
