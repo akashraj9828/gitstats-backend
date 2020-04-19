@@ -20,7 +20,7 @@ const githubToken = process.env.GITHUB_TOKEN;
 //     cors: {
 //         origin: [
 //             'http://gitstats-prod.herokuapp.com', // heroku app
-//             'http://localhost:4000',// client on local
+//             'http://localhost:5000',// client on local
 //             'http://localhost:3000', // client on local
 //         ],
 //         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -88,7 +88,7 @@ app.use("/",(req,res)=>{
 })
 
 // 3000 for frontend on local machine
-const port = 4000;
+const port = 5000;
 
 const server = app.listen(process.env.PORT || port, () => {
     signale.info(`-------STARTING SERVER`)
