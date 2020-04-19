@@ -3,37 +3,50 @@ require('dotenv').config()
 
 // loading libraries
 const express = require("express")
-const signale = require("signale")
 const cors = require("cors")
 const fetch = require("node-fetch")
+const favicon = require('serve-favicon')
+const path = require('path')
 const payload = require("./graphql/payload.js")
 
-var app = express();
+
+// Signale config
+const signale = require("signale")
+
+// const signale=signale.scope("server.js")
 
 
 const githubToken = process.env.GITHUB_TOKEN;
-// Express app
 
+var app = express();
+
+app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 // *********************** WILL use CORS in PROUDUCTION BUILD ONLY
 
-// const serverOptions = {
-//     cors: {
-//         origin: [
-//             'http://gitstats-prod.herokuapp.com', // heroku app
-//             'http://localhost:5000',// client on local
-//             'http://localhost:3000', // client on local
-//         ],
-//         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
-//         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-//         credentials: true,
-//     },
-// };
+const serverOptions = {
+    cors: {
+        origin: [
+            'https://gitstats-prod.herokuapp.com', // heroku app
+            'https://gitstats-stage.herokuapp.com', // heroku app
+            'http://gitstats-prod.herokuapp.com', // heroku app
+            'http://gitstats-stage.herokuapp.com', // heroku app
+            'https://localhost:5000',// client on local
+            'https://localhost:3000', // client on local
+            'http://localhost:5000',// client on local
+            'http://localhost:3000', // client on local
+        ],
+        methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+        credentials: true,
+    },
+};
 
-
-// app.use(cors(serverOptions.cors));
+app.use(cors(serverOptions.cors));
 
 // *********************** WILL use in PROUDUCTION BUILD ONLY
 
+// cors allow all
+// app.use(cors());
 
 app.use('/rate_limit', (req, res) => {
     // params:,
@@ -60,9 +73,8 @@ app.use('/rate_limit', (req, res) => {
 
 app.use('/:username', (req, res) => {
     signale.info(`-------${req.params.username} data requested!`)
-
-    // params:,
     const username = req.params.username;
+    signale.time(`fetch ${username}`);
     const query = payload.userPayload(username)
 
     fetch('https://api.github.com/graphql', {
@@ -74,26 +86,32 @@ app.use('/:username', (req, res) => {
         }).then(res => res.text())
         .then(body => {
             json_data = JSON.parse(body)
-            str = JSON.stringify(json_data, null, 2)
-            console.log(str);
+            // str = JSON.stringify(json_data, null, 2)
+            // console.log(str);
             res.json({
                 ...json_data
             })
+            signale.timeEnd(`fetch ${username}`);
         }) // {"data":{"repository":{"issues":{"totalCount":247}}}}
         .catch(error => console.error(error));
 });
 
-app.use("/",(req,res)=>{
-    res.json({msg:"This is api for GitStats",hint:{1:"try querying /{username}",2:"to get api request limit /rate_limit"}})
+app.use("/", (req, res) => {
+    res.json({
+        msg: "This is api for GitStats",
+        hint: {
+            1: "try querying /{username}",
+            2: "to get api request limit /rate_limit"
+        }
+    })
 })
 
 // 3000 for frontend on local machine
 const port = 5000;
 
 const server = app.listen(process.env.PORT || port, () => {
-    signale.info(`-------STARTING SERVER`)
+    signale.start(`-------STARTING SERVER`)
     var host = server.address().address;
     var port = server.address().port;
     signale.success(`-------EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
 })
-
