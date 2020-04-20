@@ -1,6 +1,5 @@
 // Load enviorment variables from .env
 require('dotenv').config()
-
 // loading libraries
 const express = require("express")
 const cors = require("cors")
@@ -13,7 +12,12 @@ const payload = require("./graphql/payload.js")
 // Signale config
 const signale = require("signale")
 
-// const signale=signale.scope("server.js")
+// error logging for prod
+if (process.env.NODE_ENV === 'production') {
+const Sentry = require('@sentry/node');
+Sentry.init({ dsn: 'https://1f8f3085586b4f83a613930697d370e3@o380288.ingest.sentry.io/5205944' });
+signale.info("Sentry initialized")
+}
 
 
 const githubToken = process.env.GITHUB_TOKEN;
@@ -21,7 +25,6 @@ const githubToken = process.env.GITHUB_TOKEN;
 var app = express();
 
 app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
-// *********************** WILL use CORS in PROUDUCTION BUILD ONLY
 
 const serverOptions = {
     cors: {
@@ -39,11 +42,8 @@ const serverOptions = {
         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
         credentials: true,
     },
-};
-
+};  
 app.use(cors(serverOptions.cors));
-
-// *********************** WILL use in PROUDUCTION BUILD ONLY
 
 // cors allow all
 // app.use(cors());
@@ -92,8 +92,8 @@ app.use('/:username', (req, res) => {
                 ...json_data
             })
             signale.timeEnd(`fetch ${username}`);
-        }) // {"data":{"repository":{"issues":{"totalCount":247}}}}
-        .catch(error => console.error(error));
+        }) 
+        .catch(error => signale.fatal(error));
 });
 
 app.use("/", (req, res) => {
@@ -110,8 +110,8 @@ app.use("/", (req, res) => {
 const port = 5000;
 
 const server = app.listen(process.env.PORT || port, () => {
-    signale.start(`-------STARTING SERVER`)
+    signale.start(`STARTING SERVER`)
     var host = server.address().address;
     var port = server.address().port;
-    signale.success(`-------EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
+    signale.success(`EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
 })

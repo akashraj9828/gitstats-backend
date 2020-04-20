@@ -22,6 +22,8 @@ const userPayload = username => ({
           createdAt
           avatarUrl
           url
+          email
+          websiteUrl
           followers {
             totalCount
           }
@@ -48,10 +50,6 @@ const userPayload = username => ({
           isBountyHunter
           isCampusExpert
           isDeveloperProgramMember
-          isEmployee
-          isHireable
-          isSiteAdmin
-          isViewer
         }
       `,
     variables: `
