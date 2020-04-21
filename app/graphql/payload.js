@@ -106,6 +106,13 @@ const reposPayload = (username, id, endCursor = null) => ({
               name
               color
             }
+            edges {
+              size
+              node {
+                color
+                name
+              }
+            }
             totalSize
           }
           contributions: defaultBranchRef {
@@ -320,10 +327,20 @@ const pinnedPayload = (username) => ({
                 stargazers {
                   totalCount
                 }
-                languages(first: 1, orderBy: {field: SIZE, direction: DESC}) {
+                languages(first: 5, orderBy: {field: SIZE, direction: DESC}) {
                   nodes {
                     color
                     name
+                  }
+                }
+                defaultBranchRef {
+                  name
+                  target {
+                    ... on Commit {
+                      history(first: 0) {
+                        totalCount
+                      }
+                    }
                   }
                 }
               }
