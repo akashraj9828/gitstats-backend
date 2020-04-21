@@ -32,6 +32,9 @@ app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 const serverOptions = {
     cors: {
         origin: [
+            'https://gitstats*', // heroku app
+            'http://gitstats*', // heroku app
+            'www.gitstats*', // heroku app
             'https://gitstats-prod.herokuapp.com', // heroku app
             'https://gitstats-stage.herokuapp.com', // heroku app
             'http://gitstats-prod.herokuapp.com', // heroku app
@@ -61,7 +64,12 @@ function theFetchMachine(query) {
                 'Authorization': `Bearer ${githubToken}`,
             },
         }).then(res => res.text())
-        .then(body =>JSON.parse(body))
+        .then(body =>{
+            console.log(body);
+            return JSON.parse(body)
+
+        }
+            )
         .catch(error => signale.fatal(error));
 }
 
