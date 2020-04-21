@@ -23,6 +23,7 @@ if (process.env.NODE_ENV === 'production') {
 
 
 const githubToken = process.env.GITHUB_TOKEN;
+const githubSearchToken = process.env.GITHUB_APP_TOKEN;
 
 var app = express();
 
@@ -36,8 +37,10 @@ const serverOptions = {
             'http://gitstats-prod.herokuapp.com', // heroku app
             'http://gitstats-stage.herokuapp.com', // heroku app
             'https://localhost:5000', // client on local
+            'https://localhost:4000', // client on local
             'https://localhost:3000', // client on local
             'http://localhost:5000', // client on local
+            'http://localhost:4000', // client on local
             'http://localhost:3000', // client on local
         ],
         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -65,6 +68,9 @@ function theFetchMachine(query) {
 }
 
 
+// static files here
+app.use('/static', express.static('public'))
+
 // query rate limit
 app.use('/rate_limit', (req, res) => {
     // params:,
@@ -75,8 +81,27 @@ app.use('/rate_limit', (req, res) => {
 
 
 
-// query repos
 
+// user search api
+// query pinned repos
+app.use('/search/:username', (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`fetch search ${username}`);
+    // actual search very limited
+    // let URL=`https://api.github.com/search/users?q=${username}&access_token=${githubSearchToken}`
+    // list only named user
+    let URL = `https://api.github.com/users/${username}?access_token=${githubSearchToken}`
+    fetch(URL)
+        .then(res => res.json())
+        .then(json => {
+            res.json(json)
+            signale.timeEnd(`fetch search ${username}`);
+        })
+        .catch(err => signale.fatal(err));
+});
+
+// query repos
 // total commit calculation formula
 // const repos=json_data.data.user.repositories.nodes
 // let sum=0
@@ -84,17 +109,18 @@ app.use('/rate_limit', (req, res) => {
 //   sum+=repo.contributions.target.userCommits.totalCount
 // });
 app.use('/repos/:username/:id', (req, res) => {
+
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
-    // const id="MDQ6VXNlcjI5Nzk2Nzg1"; //for akashraj9828
+    // const id=`MDQ6VXNlcjI5Nzk2Nzg1"; //for akashraj9828
     const id = req.params.id;
     signale.time(`fetch repos ${username}`);
-    const query = payload.reposPayload(username,id, null)
+    const query = payload.reposPayload(username, id, null)
 
     Promise.resolve(theFetchMachine(query)).then(data => {
         res.json(data)
         signale.timeEnd(`fetch repos ${username}`);
-    }).catch(err=>signale.fatal(err))
+    }).catch(err => signale.fatal(err))
 
 });
 // query pinned repos
@@ -106,7 +132,7 @@ app.use('/pinned/:username', (req, res) => {
     Promise.resolve(theFetchMachine(query)).then(data => {
         res.json(data)
         signale.timeEnd(`fetch pinned ${username}`);
-    }).catch(err=>signale.fatal(err))
+    }).catch(err => signale.fatal(err))
 
 });
 
@@ -119,7 +145,7 @@ app.use('/:username', (req, res) => {
     Promise.resolve(theFetchMachine(query)).then(data => {
         res.json(data)
         signale.timeEnd(`fetch basic ${username}`);
-    }).catch(err=>signale.fatal(err))
+    }).catch(err => signale.fatal(err))
 });
 
 
