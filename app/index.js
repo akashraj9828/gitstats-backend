@@ -31,20 +31,23 @@ app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 
 const serverOptions = {
     cors: {
+        // origin: [
+        //     'https://gitstats*', // heroku app
+        //     'http://gitstats*', // heroku app
+        //     'www.gitstats*', // heroku app
+        //     'https://gitstats-prod.herokuapp.com', // heroku app
+        //     'https://gitstats-stage.herokuapp.com', // heroku app
+        //     'http://gitstats-prod.herokuapp.com', // heroku app
+        //     'http://gitstats-stage.herokuapp.com', // heroku app
+        //     'https://localhost:5000', // client on local
+        //     'https://localhost:4000', // client on local
+        //     'https://localhost:3000', // client on local
+        //     'http://localhost:5000', // client on local
+        //     'http://localhost:4000', // client on local
+        //     'http://localhost:3000', // client on local
+        // ],
         origin: [
-            'https://gitstats*', // heroku app
-            'http://gitstats*', // heroku app
-            'www.gitstats*', // heroku app
-            'https://gitstats-prod.herokuapp.com', // heroku app
-            'https://gitstats-stage.herokuapp.com', // heroku app
-            'http://gitstats-prod.herokuapp.com', // heroku app
-            'http://gitstats-stage.herokuapp.com', // heroku app
-            'https://localhost:5000', // client on local
-            'https://localhost:4000', // client on local
-            'https://localhost:3000', // client on local
-            'http://localhost:5000', // client on local
-            'http://localhost:4000', // client on local
-            'http://localhost:3000', // client on local
+            '*'
         ],
         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
