@@ -61,9 +61,7 @@ function theFetchMachine(query) {
                 'Authorization': `Bearer ${githubToken}`,
             },
         }).then(res => res.text())
-        .then(body =>
-            json_data = JSON.parse(body)
-        )
+        .then(body =>JSON.parse(body))
         .catch(error => signale.fatal(error));
 }
 
@@ -155,7 +153,11 @@ app.use("/", (req, res) => {
         msg: "This is api for GitStats",
         hint: {
             1: "try querying /{username}",
-            2: "to get api request limit /rate_limit"
+            2: "to get api request limit /rate_limit",
+            3: "/repos",
+            4: "/pinned",
+            5: "/{username}",
+            6: "/search/{username}"
         }
     })
 })
