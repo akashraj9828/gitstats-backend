@@ -65,7 +65,6 @@ function theFetchMachine(query) {
             },
         }).then(res => res.text())
         .then(body =>{
-            console.log(body);
             return JSON.parse(body)
 
         }

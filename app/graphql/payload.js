@@ -36,28 +36,16 @@ const userPayload = username => ({
           gists {
             totalCount
           }
-          pinnedRepositories(first: 6) {
-            totalCount
-            nodes {
-              name
-              nameWithOwner
-              forkCount
-              description
-              homepageUrl
-              languages(first: 5) {
-                nodes {
-                  color
-                  name
-                }
-              }
-            }
-          }
           repositories(first: 0, privacy: PUBLIC) {
             totalCount
           }
           isBountyHunter
           isCampusExpert
           isDeveloperProgramMember
+          isEmployee
+          isHireable
+          isSiteAdmin
+          isViewer
         }
       `,
   variables: `
