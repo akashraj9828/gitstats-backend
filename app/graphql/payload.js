@@ -76,6 +76,7 @@ const reposPayload = (username, id, endCursor = null) => ({
   
         fragment repoStats on Repository {
           nameWithOwner
+          name
           url
           owner {
             login
