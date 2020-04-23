@@ -26,14 +26,15 @@
         $("#search-bar").on("input", function (evt) {
             let query = evt.target.value
             console.log(query);
+            if(query==""){
+                return
+            }
             fetch("/search/" + query).then(res => res.json()).then(res => {
                 // console.log(res);
                 holder.empty()
                 let items = res
-
                 let e = items
                 console.log(e);
-
                 let name = e.login ? e.login : e.message;
                 let img = e.avatar_url ? e.avatar_url : "https://avatars2.githubusercontent.com/u/194705?v=4"
                 let dom = `<div class="col-md-12  p-2">
