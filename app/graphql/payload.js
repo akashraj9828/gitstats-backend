@@ -36,6 +36,34 @@ const userPayload = username => ({
           gists {
             totalCount
           }
+          pinnedRepositories(first: 6, privacy: PUBLIC) {
+            nodes {
+              isFork
+              forkCount
+              nameWithOwner
+              name
+              stargazers {
+                totalCount
+              }
+              languages(first: 5, orderBy: {field: SIZE, direction: DESC}) {
+                nodes {
+                  color
+                  name
+                }
+              }
+              defaultBranchRef {
+                name
+                target {
+                  ... on Commit {
+                    history(first: 0) {
+                      totalCount
+                    }
+                  }
+                }
+              }
+            }
+            totalCount
+          }
           repositories(first: 0, privacy: PUBLIC) {
             totalCount
           }
