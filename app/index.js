@@ -120,7 +120,6 @@ cacheMiddleware.attach(app)
 // CACHE RESPONSE OF ALL THE APIS BELOW THIS
 
 // user search api
-// query pinned repos
 app.use('/search/:username', (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
@@ -134,6 +133,25 @@ app.use('/search/:username', (req, res) => {
         .then(json => {
             res.json(json)
             signale.timeEnd(`TIME      fetch search ${username}`);
+        })
+        .catch(err => signale.fatal(err));
+});
+
+
+// query pinned repos
+app.use('/history/:username', (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME      fetch history ${username}`);
+    // actual search very limited
+    // let URL=`https://api.github.com/search/users?q=${username}&access_token=${githubSearchToken}`
+    // list only named user
+    let URL = `https://github-contributions.now.sh/api/v1/${username}`
+    fetch(URL)
+        .then(res => res.json())
+        .then(json => {
+            res.json(json)
+            signale.timeEnd(`TIME      fetch history ${username}`);
         })
         .catch(err => signale.fatal(err));
 });
