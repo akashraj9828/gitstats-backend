@@ -1,93 +1,248 @@
 // Load enviorment variables from .env
 require('dotenv').config()
-
 // loading libraries
 const express = require("express")
-const signale = require("signale")
 const cors = require("cors")
 const fetch = require("node-fetch")
+const favicon = require('serve-favicon')
+const path = require('path')
 const payload = require("./graphql/payload.js")
-
+const compression = require('compression')
+const expressRedisCache = require('express-redis-cache')
+// Signale config
+const signale = require("signale")
+const Sentry = require('@sentry/node');
+const webhook = require('./utils/webhook.js')
+const theFetchMachine = require('./utils/theFetchMachine.js')
+const redis = require('redis');
 var app = express();
 
+// first middleware is a webhook
+app.use((req, res, next) => {
+    // perform analytics here if you want to
+    webhook(req)
+    next()
+})
 
-const githubToken = process.env.GITHUB_TOKEN;
-// Express app
+if (process.env.NODE_ENV === 'production') {
+    Sentry.init({
+        dsn: process.env.SENTRY_URL,
+    });
+    app.use(compression());
+    signale.success("Sentry initialized and compression activated")
 
-// *********************** WILL use CORS in PROUDUCTION BUILD ONLY
+}
 
+// intiialialize redis client
+var redisClient = redis.createClient(process.env.REDISCLOUD_URL, {
+    no_ready_check: true
+});
+redisClient.on('error', signale.error);
+
+// initialize cache
+let cache = expressRedisCache({
+    client: redisClient,
+    expire: 60 * 30 //30mins
+})
+signale.success("Cache initialized")
+
+// to not cache write routes like this
+// app.get("/",(req, res, next) =>{res.use_express_redis_cache = false;next();},cache.route(),function(req,res){//your code}
+
+const githubSearchToken = process.env.GITHUB_APP_TOKEN;
+
+// sentry middleware
+app.use(Sentry.Handlers.requestHandler());
+
+
+app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
+
+// FOR NOW CORS IS ALLOWED FROM *
 // const serverOptions = {
 //     cors: {
 //         origin: [
-//             'http://gitstats-prod.herokuapp.com', // heroku app
-//             'http://localhost:4000',// client on local
-//             'http://localhost:3000', // client on local
+//             'http://gitstats-stage.herokuapp.com', // heroku app
+//             'http://gitstats-stage.herokuapp.com', // heroku app
+//             'http://localhost:5000', // dev on local
+//             'http://localhost:4000', // dev on local
+//             'http://localhost:3000', // dev on local
 //         ],
 //         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
 //         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
 //         credentials: true,
 //     },
 // };
-
-
 // app.use(cors(serverOptions.cors));
 
-// *********************** WILL use in PROUDUCTION BUILD ONLY
+// cors middleware
+app.use(cors());
 
+// dont cache
+app.get('/test-sentry', (req, res, next) => {
+    res.use_express_redis_cache = false;
+    next();
+}, cache.route(), function mainHandler(req, res) {
+    throw new Error('Error test : Sentry');
+});
 
-app.use('/rate_limit', (req, res) => {
+// static files here
+// ⚠ host any html files here
+app.use('/static', cache.route(), express.static('public'))
+
+// query rate limit
+// dont cache
+// ⚠ for dev only
+app.use('/rate_limit', (req, res, next) => {
+    res.use_express_redis_cache = false;
+    next();
+}, cache.route(), (req, res) => {
     // params:,
-    const username = req.params.username;
     const query = payload.rateLimit()
+    signale.time(`TIME- Query rate limit`);
 
-    fetch('https://api.github.com/graphql', {
-            method: 'POST',
-            body: JSON.stringify(query),
-            headers: {
-                'Authorization': `Bearer ${githubToken}`,
-            },
-        }).then(res => res.text())
-        .then(body => {
-            json_data = JSON.parse(body)
-            str = JSON.stringify(json_data, null, 2)
-            console.log(str);
-            res.json({
-                ...json_data
-            })
-        })
-        .catch(error => console.error(error));
+    Promise.resolve(theFetchMachine(query)).then(data => {
+        res.json(data)
+        signale.timeEnd(`TIME- Query rate limit`);
+    }).catch(err => {
+        signale.error(err)
+        Sentry.captureException(err)
+    })
 });
 
-app.use('/:username', (req, res) => {
-    signale.info(`-------${req.params.username} data requested!`)
-
-    // params:,
+// user search api
+// ⚠ not used anymore
+app.use('/search/:username', cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
-    const query = payload.userPayload(username)
-
-    fetch('https://api.github.com/graphql', {
-            method: 'POST',
-            body: JSON.stringify(query),
-            headers: {
-                'Authorization': `Bearer ${githubToken}`,
-            },
-        }).then(res => res.text())
-        .then(body => {
-            json_data = JSON.parse(body)
-            str = JSON.stringify(json_data, null, 2)
-            console.log(str);
-            res.json({
-                ...json_data
-            })
-        }) // {"data":{"repository":{"issues":{"totalCount":247}}}}
-        .catch(error => console.error(error));
+    signale.time(`TIME- fetch search ${username}`);
+    // actual search very limited
+    // let URL=`https://api.github.com/search/users?q=${username}&access_token=${githubSearchToken}`
+    // list only named user
+    let URL = `https://api.github.com/users/${username}?access_token=${githubSearchToken}`
+    fetch(URL)
+        .then(res => res.json())
+        .then(json => {
+            res.json(json)
+            signale.timeEnd(`TIME- fetch search ${username}`);
+        })
+        .catch(err => {
+            signale.error(err)
+            Sentry.captureException(err)
+        });
 });
 
-const port = 3000;
+// user events in xml format
+app.use('/rss/:username',cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch search ${username}`);
+    // rss feed for an username
+    let URL = `https://github.com/${username}.atom`
+    fetch(URL)
+        .then(async data => {
+            res.type('.xml')
+            res.send(await data.text())
+            signale.timeEnd(`TIME- fetch search ${username}`);
+        })
+        .catch(err => {
+            signale.error(err)
+            Sentry.captureException(err)
+        });
+});
 
-const server = app.listen(process.env.PORT || port, () => {
-    signale.info(`-------STARTING SERVER`)
+// query user commit histoy repos
+app.use('/history/:username', cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch history ${username}`);
+    let URL = `https://github-contributions.now.sh/api/v1/${username}`
+    fetch(URL)
+        .then(res => res.json())
+        .then(json => {
+            res.json(json)
+            signale.timeEnd(`TIME- fetch history ${username}`);
+        })
+        .catch(err => {
+            signale.error(err)
+            Sentry.captureException(err)
+        });
+});
+
+// return repos of users+ commits on those repos by user with id ":id"
+app.use('/repos/:username/:id', cache.route(), (req, res) => {
+
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    // const id=`MDQ6VXNlcjI5Nzk2Nzg1"; //for akashraj9828
+    const id = req.params.id;
+    signale.time(`TIME- fetch repos ${username}`);
+    const query = payload.reposPayload(username, id, null)
+
+    Promise.resolve(theFetchMachine(query)).then(data => {
+        res.json(data)
+        signale.timeEnd(`TIME- fetch repos ${username}`);
+    }).catch(err => {
+        signale.error(err)
+        Sentry.captureException(err)
+    })
+
+});
+
+// query pinned repos
+// ⚠ not used anymore
+app.use('/pinned/:username', cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch pinned ${username}`);
+    const query = payload.pinnedPayload(username) + "asdh"
+    Promise.resolve(theFetchMachine(query)).then(data => {
+        res.json(data)
+        signale.timeEnd(`TIME- fetch pinned ${username}`);
+    }).catch(err => {
+        signale.error(err)
+        Sentry.captureException(err)
+    })
+
+});
+
+// query basic info
+app.use('/:username', cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch basic ${username}`);
+    const query = payload.userPayload(username)
+    Promise.resolve(theFetchMachine(query)).then(data => {
+        res.json(data)
+        signale.timeEnd(`TIME- fetch basic ${username}`);
+    }).catch(err => {
+        signale.error(err)
+        Sentry.captureException(err)
+    })
+});
+
+
+// base query
+app.use("/", cache.route(), (req, res) => {
+    res.json({
+        msg: "This is api for GitStats",
+        hint: {
+            1: "try querying /{username}",
+            2: "to get api request limit /rate_limit",
+            3: "/repos",
+            4: "/pinned",
+            5: "/{username}",
+            6: "/search/{username}"
+        }
+    })
+})
+
+// The error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
+// 3000 for frontend on local machine
+const port = 5000;
+const server = app.listen(process.env.PORT || port, "0.0.0.0", () => {
+    signale.start(`STARTING SERVER`)
     var host = server.address().address;
     var port = server.address().port;
-    signale.success(`-------EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
+    signale.success(`EXPRESS SERVER LISTENING LIVE AT ${host}:${port}`)
 })
