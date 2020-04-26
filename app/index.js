@@ -12,8 +12,8 @@ const expressRedisCache = require('express-redis-cache')
 // Signale config
 const signale = require("signale")
 const Sentry = require('@sentry/node');
-const webhook=require('./utils/webhook.js')
-const theFetchMachine=require('./utils/theFetchMachine.js')
+const webhook = require('./utils/webhook.js')
+const theFetchMachine = require('./utils/theFetchMachine.js')
 const redis = require('redis');
 var app = express();
 
@@ -78,16 +78,22 @@ app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 app.use(cors());
 
 // dont cache
-app.get('/test-sentry',(req, res, next) =>{res.use_express_redis_cache = false;next();},cache.route(), function mainHandler(req, res) {
+app.get('/test-sentry', (req, res, next) => {
+    res.use_express_redis_cache = false;
+    next();
+}, cache.route(), function mainHandler(req, res) {
     throw new Error('Error test : Sentry');
 });
 
 // static files here
-app.use('/static',cache.route(), express.static('public'))
+app.use('/static', cache.route(), express.static('public'))
 
 // query rate limit
 // dont cache
-app.use('/rate_limit',(req, res, next) =>{res.use_express_redis_cache = false;next();},cache.route(), (req, res) => {
+app.use('/rate_limit', (req, res, next) => {
+    res.use_express_redis_cache = false;
+    next();
+}, cache.route(), (req, res) => {
     // params:,
     const query = payload.rateLimit()
     signale.time(`TIME- Query rate limit`);
@@ -102,7 +108,7 @@ app.use('/rate_limit',(req, res, next) =>{res.use_express_redis_cache = false;ne
 });
 
 // user search api
-app.use('/search/:username',cache.route(), (req, res) => {
+app.use('/search/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch search ${username}`);
@@ -122,27 +128,47 @@ app.use('/search/:username',cache.route(), (req, res) => {
         });
 });
 
+// user events in xml format
+app.use('/rss/:username',cache.route(), (req, res) => {
+    console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch search ${username}`);
+    // rss feed for an username
+    let URL = `https://github.com/${username}.atom`
+    fetch(URL)
+        .then(async data => {
+            res.type('.xml')
+            res.send(await data.text())
+            signale.timeEnd(`TIME- fetch search ${username}`);
+        })
+        .catch(err => {
+            signale.error(err)
+            Sentry.captureException(err)
+        });
+});
 
 // query pinned repos
-app.use('/history/:username',cache.route(), (req, res) => {
-        signale.info(`${req.params.username} data requested!`)
-        const username = req.params.username;
-        signale.time(`TIME- fetch history ${username}`);
-        let URL = `https://github-contributions.now.sh/api/v1/${username}`
-        fetch(URL)
-            .then(res => res.json())
-            .then(json => {
-                res.json(json)
-                signale.timeEnd(`TIME- fetch history ${username}`);
-            })
-            .catch(err => {
-                signale.error(err)
-                Sentry.captureException(err)
-            });
-    });
+app.use('/history/:username', cache.route(), (req, res) => {
+    signale.info(`${req.params.username} data requested!`)
+    const username = req.params.username;
+    signale.time(`TIME- fetch history ${username}`);
+    let URL = `https://github-contributions.now.sh/api/v1/${username}`
+    fetch(URL)
+        .then(res => res.json())
+        .then(json => {
+            res.json(json)
+            signale.timeEnd(`TIME- fetch history ${username}`);
+        })
+        .catch(err => {
+            signale.error(err)
+            Sentry.captureException(err)
+        });
+});
 
 // return repos of users+ commits on those repos by user with id ":id"
-app.use('/repos/:username/:id',cache.route(), (req, res) => {
+app.use('/repos/:username/:id', cache.route(), (req, res) => {
 
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
@@ -161,7 +187,7 @@ app.use('/repos/:username/:id',cache.route(), (req, res) => {
 
 });
 // query pinned repos
-app.use('/pinned/:username',cache.route(), (req, res) => {
+app.use('/pinned/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch pinned ${username}`);
@@ -177,7 +203,7 @@ app.use('/pinned/:username',cache.route(), (req, res) => {
 });
 
 // query basic info
-app.use('/:username',cache.route(), (req, res) => {
+app.use('/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch basic ${username}`);
@@ -193,7 +219,7 @@ app.use('/:username',cache.route(), (req, res) => {
 
 
 // base query
-app.use("/",cache.route(), (req, res) => {
+app.use("/", cache.route(), (req, res) => {
     res.json({
         msg: "This is api for GitStats",
         hint: {
