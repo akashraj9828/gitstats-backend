@@ -24,13 +24,12 @@ app.use((req, res, next) => {
     next()
 })
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "stage") {
     Sentry.init({
         dsn: process.env.SENTRY_URL,
     });
     app.use(compression());
     signale.success("Sentry initialized and compression activated")
-
 }
 
 // intiialialize redis client
@@ -57,25 +56,31 @@ app.use(Sentry.Handlers.requestHandler());
 
 app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 
-// FOR NOW CORS IS ALLOWED FROM *
-// const serverOptions = {
-//     cors: {
-//         origin: [
-//             'http://gitstats-stage.herokuapp.com', // heroku app
-//             'http://gitstats-stage.herokuapp.com', // heroku app
-//             'http://localhost:5000', // dev on local
-//             'http://localhost:4000', // dev on local
-//             'http://localhost:3000', // dev on local
-//         ],
-//         methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
-//         allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-//         credentials: true,
-//     },
-// };
-// app.use(cors(serverOptions.cors));
 
-// cors middleware
-app.use(cors());
+if (process.env.NODE_ENV === "production") {
+    const serverOptions = {
+        cors: {
+            origin: [
+                'http://gitstats-prod.herokuapp.com', // heroku app
+                'http://gitstats.me',
+                'https://gitstats-prod.herokuapp.com', // heroku app
+                'https://gitstats.me',
+            ],
+            methods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+            // allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+            // credentials: true,
+        },
+    };
+    signale.warn("CORS ENABLED FOR ", serverOptions.cors.origin)
+    app.use(cors(serverOptions.cors));
+
+}
+if (process.env.NODE_ENV !== "production") {
+    // cors middleware
+    // 🦆 it allow all
+    signale.warn("CORS ENABLED FOR ALL")
+    app.use(cors());
+}
 
 // dont cache
 app.get('/test-sentry', (req, res, next) => {
@@ -132,7 +137,11 @@ app.use('/search/:username', cache.route(), (req, res) => {
 });
 
 // user events in xml format
-app.use('/rss/:username',cache.route(), (req, res) => {
+// don't cache this
+app.use('/rss/:username', (req, res, next) => {
+    res.use_express_redis_cache = false;
+    next();
+}, cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch search ${username}`);
@@ -226,12 +235,16 @@ app.use("/", cache.route(), (req, res) => {
     res.json({
         msg: "This is api for GitStats",
         hint: {
-            1: "try querying /{username}",
-            2: "to get api request limit /rate_limit",
-            3: "/repos",
-            4: "/pinned",
-            5: "/{username}",
-            6: "/search/{username}"
+            endpoints: [
+                "/{username}",
+                "/repos/{username}/{id}",
+                "/pinned{username}",
+                "/rss/{username}",
+                "/search/{username}",
+                "/history/{username}",
+                "/rate_limit",
+                "/static"
+            ]
         }
     })
 })
