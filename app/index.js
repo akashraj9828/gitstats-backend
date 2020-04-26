@@ -86,10 +86,12 @@ app.get('/test-sentry', (req, res, next) => {
 });
 
 // static files here
+// ⚠ host any html files here
 app.use('/static', cache.route(), express.static('public'))
 
 // query rate limit
 // dont cache
+// ⚠ for dev only
 app.use('/rate_limit', (req, res, next) => {
     res.use_express_redis_cache = false;
     next();
@@ -108,6 +110,7 @@ app.use('/rate_limit', (req, res, next) => {
 });
 
 // user search api
+// ⚠ not used anymore
 app.use('/search/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
@@ -130,8 +133,6 @@ app.use('/search/:username', cache.route(), (req, res) => {
 
 // user events in xml format
 app.use('/rss/:username',cache.route(), (req, res) => {
-    console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch search ${username}`);
@@ -149,7 +150,7 @@ app.use('/rss/:username',cache.route(), (req, res) => {
         });
 });
 
-// query pinned repos
+// query user commit histoy repos
 app.use('/history/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
@@ -186,7 +187,9 @@ app.use('/repos/:username/:id', cache.route(), (req, res) => {
     })
 
 });
+
 // query pinned repos
+// ⚠ not used anymore
 app.use('/pinned/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
@@ -237,7 +240,6 @@ app.use("/", cache.route(), (req, res) => {
 app.use(Sentry.Handlers.errorHandler());
 // 3000 for frontend on local machine
 const port = 5000;
-
 const server = app.listen(process.env.PORT || port, "0.0.0.0", () => {
     signale.start(`STARTING SERVER`)
     var host = server.address().address;
