@@ -46,7 +46,7 @@
     "displayBadge": true,
     "displayDate": false,
     "displayFilename": true,
-    "displayLabel":   ,
+    "displayLabel":  true ,
     "displayTimestamp": true,
     "underlineLabel": true,
     "underlineMessage": false,
