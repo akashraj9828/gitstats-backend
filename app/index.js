@@ -22,7 +22,7 @@ const redis = require('redis');
 const signale_options = {
     disabled: false,
 };
- 
+
 const signale = new Signale(signale_options);
 
 var app = express();
@@ -75,9 +75,11 @@ if (process.env.NODE_ENV === "production") {
         cors: {
             origin: [
                 'http://gitstats-prod.herokuapp.com', // heroku app
+                'http://gitstats-stage.herokuapp.com', // heroku app
                 'http://gitstats.me', // webapp
                 'http://api.gitstats.me', //self
                 'https://api.gitstats.me', //self
+                'https://gitstats-stage.herokuapp.com', // heroku app
                 'https://gitstats-prod.herokuapp.com', // heroku app
                 'https://gitstats.me',
             ],
@@ -220,7 +222,7 @@ app.use('/pinned/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch pinned ${username}`);
-    const query = payload.pinnedPayload(username) + "asdh"
+    const query = payload.pinnedPayload(username)
     Promise.resolve(theFetchMachine(query)).then(data => {
         res.json(data)
         signale.timeEnd(`TIME- fetch pinned ${username}`);

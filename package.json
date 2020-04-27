@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Backend for gitstats",
   "scripts": {
-    "start": "pm2 start ecosystem.config.js --env production  && pm2 log",
+    "start": "pm2 start ecosystem.config.js && pm2 log",
     "dev": "nodemon ./app/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
