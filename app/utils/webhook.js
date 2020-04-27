@@ -13,6 +13,7 @@ function webhook(req){
             "fresh": req.fresh,
             "hostname": req.hostname,
             "ip": req.ip,
+            "user-agent":req.get('user-agent'),
             "ips": req.ips,
             "method": req.method,
             "originalUrl": req.originalUrl,
