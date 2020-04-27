@@ -22,7 +22,7 @@ const redis = require('redis');
 const signale_options = {
     disabled: false,
 };
- 
+
 const signale = new Signale(signale_options);
 
 var app = express();
@@ -220,7 +220,7 @@ app.use('/pinned/:username', cache.route(), (req, res) => {
     signale.info(`${req.params.username} data requested!`)
     const username = req.params.username;
     signale.time(`TIME- fetch pinned ${username}`);
-    const query = payload.pinnedPayload(username) + "asdh"
+    const query = payload.pinnedPayload(username)
     Promise.resolve(theFetchMachine(query)).then(data => {
         res.json(data)
         signale.timeEnd(`TIME- fetch pinned ${username}`);
