@@ -75,9 +75,11 @@ if (process.env.NODE_ENV === "production") {
         cors: {
             origin: [
                 'http://gitstats-prod.herokuapp.com', // heroku app
+                'http://gitstats-stage.herokuapp.com', // heroku app
                 'http://gitstats.me', // webapp
                 'http://api.gitstats.me', //self
                 'https://api.gitstats.me', //self
+                'https://gitstats-stage.herokuapp.com', // heroku app
                 'https://gitstats-prod.herokuapp.com', // heroku app
                 'https://gitstats.me',
             ],
