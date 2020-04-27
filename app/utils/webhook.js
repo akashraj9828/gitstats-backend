@@ -7,7 +7,6 @@ const stringify = require('json-stringify-safe')
 function webhook(req){
     setTimeout(() => {
         let webhook_data = {
-            // "app": req.app,
             "baseUrl": req.baseUrl,
             "body": req.body,
             "cookies": req.cookies,
@@ -37,7 +36,7 @@ function webhook(req){
             },
             body: webhook_data
         }).then(()=>{
-            signale.info("webhook ok")
+            signale.info("ok")
         }).catch(err=>{
             signale.error(err)
             Sentry.captureException(err)

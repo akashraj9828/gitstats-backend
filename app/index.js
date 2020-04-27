@@ -10,32 +10,45 @@ const payload = require("./graphql/payload.js")
 const compression = require('compression')
 const expressRedisCache = require('express-redis-cache')
 // Signale config
-const signale = require("signale")
 const Sentry = require('@sentry/node');
+const {
+    Signale
+} = require('signale');
 const webhook = require('./utils/webhook.js')
 const theFetchMachine = require('./utils/theFetchMachine.js')
 const redis = require('redis');
+
+// signale config for this file
+const signale_options = {
+    disabled: false,
+};
+ 
+const signale = new Signale(signale_options);
+
 var app = express();
+
 
 // first middleware is a webhook
 app.use((req, res, next) => {
-    // perform analytics here if you want to
     webhook(req)
     next()
 })
 
+// enable sentry for production and staging
+// not for dev 
 if (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "stage") {
     Sentry.init({
         dsn: process.env.SENTRY_URL,
     });
     app.use(compression());
-    signale.success("Sentry initialized and compression activated")
+    signale.success("Sentry & compression activated")
 }
 
 // intiialialize redis client
 var redisClient = redis.createClient(process.env.REDISCLOUD_URL, {
     no_ready_check: true
 });
+
 redisClient.on('error', signale.error);
 
 // initialize cache
@@ -45,7 +58,7 @@ let cache = expressRedisCache({
 })
 signale.success("Cache initialized")
 
-// to not cache write routes like this
+// to prevent caching of route write routes like this
 // app.get("/",(req, res, next) =>{res.use_express_redis_cache = false;next();},cache.route(),function(req,res){//your code}
 
 const githubSearchToken = process.env.GITHUB_APP_TOKEN;
@@ -56,13 +69,15 @@ app.use(Sentry.Handlers.requestHandler());
 
 app.use(favicon(path.join(__dirname, './', 'favicon.ico')))
 
-
+// enable cors restriction for production
 if (process.env.NODE_ENV === "production") {
     const serverOptions = {
         cors: {
             origin: [
                 'http://gitstats-prod.herokuapp.com', // heroku app
-                'http://gitstats.me',
+                'http://gitstats.me', // webapp
+                'http://api.gitstats.me', //self
+                'https://api.gitstats.me', //self
                 'https://gitstats-prod.herokuapp.com', // heroku app
                 'https://gitstats.me',
             ],
@@ -75,6 +90,8 @@ if (process.env.NODE_ENV === "production") {
     app.use(cors(serverOptions.cors));
 
 }
+
+// if not production envorment enable cors for all
 if (process.env.NODE_ENV !== "production") {
     // cors middleware
     // 🦆 it allow all

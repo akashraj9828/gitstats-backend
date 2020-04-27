@@ -31,3 +31,7 @@ yarn-error.log*
 *.log
 yarn.lock
 package-lock.json
+
+# For local stress testing 
+local.test.js
+list.js
