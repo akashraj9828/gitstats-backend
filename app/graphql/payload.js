@@ -340,7 +340,7 @@ const pinnedPayload = (username) => ({
             login
             id
             itemShowcase {
-              items(first: 10) {
+              items(first: 6) {
                 nodes {
                   ... on Repository {
                     isFork
