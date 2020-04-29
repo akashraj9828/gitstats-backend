@@ -37,7 +37,7 @@ const userPayload = username => ({
             totalCount
           }
           itemShowcase {
-            items(first: 10) {
+            items(first: 6) {
               nodes {
                 ... on Repository {
                   isFork
